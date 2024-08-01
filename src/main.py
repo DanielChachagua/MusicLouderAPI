@@ -1,21 +1,24 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from db import *
-from Middleware.timing import TimingMiddleware
+from .Database.db import *
+from .Middleware.timing import TimingMiddleware
+from .Routes.user_router import user_router
 
 app = FastAPI(title= 'API para app MUSICLOUDER',
             description='API para CRUD de usuarios y canciones',
-            version='1')
+            version='0.0.1')
+
+app.include_router(prefix= '/user', router= user_router)
+
+app.add_middleware(TimingMiddleware)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    create_database_if_not_exists()  # Asegúrate de que la base de datos está creada
     if db.is_closed():
         logging.info("Conectando a la base de datos...")
         db.connect()
-        logging.info("Coneccion creada.")
-    create_database_if_not_exists()
-    logging.info("El servidor ha iniciado.")
-
+        logging.info("Conexión creada.")
     logging.info('Validando tablas...')
     db.create_tables([User, Artist, Album, Genre, Song, Playlist, PlaylistSong, SongGenre])
     logging.info('Tablas validadas.')
@@ -26,13 +29,6 @@ async def lifespan(app: FastAPI):
         logging.info("Base de datos cerrada.")
         logging.info("El servidor se está cerrando.")
 
+
 app.router.lifespan_context = lifespan
-app.add_middleware(TimingMiddleware)
 
-@app.get('/')
-async def index():
-    return 'hola'
-
-@app.get('/sobre')
-async def sobre():
-    return 'sobre'

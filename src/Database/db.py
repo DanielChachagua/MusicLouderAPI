@@ -1,10 +1,11 @@
+#db.py
+
 from peewee import *
 import MySQLdb
 import logging
 from datetime import datetime, timezone
 from playhouse.signals import pre_save
 from decouple import config
-
 # Configuración de la base de datos
 
 
@@ -14,13 +15,13 @@ def create_database_if_not_exists():
         host=config('DB_HOST'),
         user=config('DB_USER'),
         passwd=config('DB_PASSWORD'),
-        port=config('DB_PORT')
+        port= int(config('DB_PORT'))
     )
     try:
         cursor = connection.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {config('DB_NAME')}")
-        connection.commit()
         logging.info('Creando base de datos...')
+        connection.commit()
         logging.info('Base de datos creada')
     finally:
         cursor.close()
@@ -32,18 +33,19 @@ db = MySQLDatabase(
     host=config('DB_HOST'),
     user=config('DB_USER'),
     passwd=config('DB_PASSWORD'),
-    port=config('DB_PORT')
+    port=int(config('DB_PORT'))
 )
 
 #Modelo User
 class User(Model):
-    id = PrimaryKeyField()
     username = CharField(max_length= 50, unique= True)
     email = CharField(max_length= 50, unique= True)
+    valid_mail = BooleanField(default=False)
     password_hash = CharField(max_length=100)
     first_name = CharField(max_length= 50)
     last_name = CharField(max_length= 50)
-    date_of_birth = DateField(null=True)
+    date_of_birth = DateField()
+    url_image = CharField(null= True)
     is_active = BooleanField(default=False)
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
@@ -59,6 +61,7 @@ class User(Model):
 class Artist(Model):
     name = CharField(unique=True, max_length=100)
     bio = TextField(null=True)
+    url_image = CharField()
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
 
@@ -88,6 +91,7 @@ class Album(Model):
     title = CharField(max_length=100)
     artist = ForeignKeyField(Artist, backref='albums')
     release_date = DateField(null=True)
+    url_image = CharField()
     created_by = ForeignKeyField(User, backref='albums')
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
