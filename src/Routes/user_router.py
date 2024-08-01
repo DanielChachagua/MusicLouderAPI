@@ -22,3 +22,13 @@ async def create_user(user: UserCreate):
     )
 
     return new_user.id
+
+
+@user_router.put('/active/{id}')
+async def active_user(id: str):
+    user = User.select().where(User.id == int(id)).first()
+    if not user:
+        raise HTTPException(404, 'Usuario no encontrado.')
+    user.is_active = True
+    user.save()
+    return user.username

@@ -3,12 +3,14 @@ from contextlib import asynccontextmanager
 from .Database.db import *
 from .Middleware.timing import TimingMiddleware
 from .Routes.user_router import user_router
+from .Routes.song_router import song_router
 
 app = FastAPI(title= 'API para app MUSICLOUDER',
             description='API para CRUD de usuarios y canciones',
             version='0.0.1')
 
 app.include_router(prefix= '/user', router= user_router)
+app.include_router(prefix= '/song', router= song_router)
 
 app.add_middleware(TimingMiddleware)
 
@@ -31,4 +33,3 @@ async def lifespan(app: FastAPI):
 
 
 app.router.lifespan_context = lifespan
-
