@@ -10,7 +10,7 @@ app = FastAPI(title= 'API para app MUSICLOUDER',
             version='0.0.1')
 
 app.include_router(prefix= '/user', router= user_router)
-app.include_router(prefix= '/song', router= song_router)
+app.include_router(prefix= '/songs', router= song_router)
 
 app.add_middleware(TimingMiddleware)
 

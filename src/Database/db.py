@@ -62,6 +62,7 @@ class Artist(Model):
     name = CharField(unique=True, max_length=100)
     bio = TextField(null=True)
     url_image = CharField()
+    created_by = ForeignKeyField(User, backref='artists')
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
 
@@ -72,24 +73,10 @@ class Artist(Model):
         database = db
         table_name = 'artists'
 
-# Modelo de género
-class Genre(Model):
-    name = CharField(unique=True, max_length=50)
-    description = TextField(null=True)
-    created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
-    updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        database = db
-        table_name = 'genres'
-
 # Modelo de álbum
 class Album(Model):
     title = CharField(max_length=100)
-    artist = ForeignKeyField(Artist, backref='albums')
+    artist = ForeignKeyField(Artist, backref='albums', null = True)
     release_date = DateField(null=True)
     url_image = CharField()
     created_by = ForeignKeyField(User, backref='albums')
@@ -103,11 +90,26 @@ class Album(Model):
         database = db
         table_name = 'albums'
 
+# Modelo de género
+class Genre(Model):
+    name = CharField(unique=True, max_length=50)
+    created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
+    updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        database = db
+        table_name = 'genres'
+
 # Modelo de canción
 class Song(Model):
     title = CharField(max_length=100)
     duration = IntegerField()  # Duración en segundos
-    album = ForeignKeyField(Album, backref='songs')
+    url_song = CharField(max_length=100)
+    album = ForeignKeyField(Album, backref='songs', null = True)
+    artist = ForeignKeyField(Artist, backref='songs', null = True)
     created_by = ForeignKeyField(User, backref='songs')
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
