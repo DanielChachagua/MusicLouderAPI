@@ -89,7 +89,7 @@ class PlaylistService:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    def delete_playlist(id: int, user_id: int):
+    def delete_playlist(self, id: int, user_id: int):
         try:
             playlist = Playlist.get_by_id(id)
             if playlist.created_by.id != user_id:

@@ -28,5 +28,5 @@ async def create_playlist(id: int, playlist: PlayListRequest) -> PlayListDTOResp
 
 
 @playlist_router.delete('/{id}', response_model=PlayListDTOResponse)
-async def delete_playlist(id: int) -> PlayListDTOResponse:
-    return playlist_service.delete_playlist(id)
+async def delete_playlist(id: int, user_id: int) -> PlayListDTOResponse:
+    return playlist_service.delete_playlist(id, user_id)

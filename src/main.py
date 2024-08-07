@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from .Database.db import create_database_if_not_exists
 from .Database.configuration import db
 from .Middleware.timing import TimingMiddleware
+from .Routes.auth import auth_router
 from .Routes.user_router import user_router
 from .Routes.song_router import song_router
 from .Routes.album_router import album_router
@@ -21,6 +22,7 @@ app = FastAPI(title= 'API para app MUSICLOUDER',
             description='API para CRUD de usuarios y canciones',
             version='0.0.1')
 
+app.include_router(prefix= '/auth', router= auth_router)
 app.include_router(prefix= '/user', router= user_router)
 app.include_router(prefix= '/songs', router= song_router)
 app.include_router(prefix= '/album', router= album_router)
