@@ -10,7 +10,6 @@ class Playlist(Model):
     created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
 
-
     class Meta:
         database = db
         table_name = 'playlists'

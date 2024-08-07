@@ -6,6 +6,7 @@ from ..Schemas.response_schema import AlbumResponse
 from .Tools.image_tool import ImageTool
 from ..Schemas.song_schema import *
 from ..Database.db import *
+from ..Database.configuration import db
 import math
 import os
 from typing import List
@@ -17,38 +18,39 @@ class AlbumService:
 
     def create_album(self, request: Request, title: str, artist: int, release_date: date, created_by: int, image: UploadFile) -> AlbumDTOResponse:
         try:
-            image_tool = ImageTool(self.path_image)
+            with db.atomic():
+                image_tool = ImageTool(self.path_image)
 
-            file_name = image_tool.save_image(image,(500,500))
+                file_name = image_tool.save_image(image,(500,500))
 
-            artist_get = Artist.select().where(Artist.id == artist).first()
+                artist_get = Artist.select().where(Artist.id == artist).first()
 
-            exist_artist = None
-            if artist_get:
-                exist_artist = artist
+                exist_artist = None
+                if artist_get:
+                    exist_artist = artist
 
-            try:
-                album: Album = Album.create(
-                    title = title,
-                    artist = exist_artist,
-                    release_date = release_date,
-                    url_image = file_name,
-                    created_by = created_by
+                try:
+                    album: Album = Album.create(
+                        title = title,
+                        artist = exist_artist,
+                        release_date = release_date,
+                        url_image = file_name,
+                        created_by = created_by
+                    )
+                except Exception as e:
+                    image_tool.delete_image(file_name)
+                    raise HTTPException(status_code=500, detail=f"Error al guardar el album. Error :{e}")
+                
+                
+
+                return AlbumDTOResponse(
+                    id=album.id,
+                    title= album.title,
+                    release_date = album.release_date,
+                    url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}",
+                    created_at = album.created_at,
+                    updated_at = album.updated_at
                 )
-            except Exception as e:
-                image_tool.delete_image(file_name)
-                raise HTTPException(status_code=500, detail=f"Error al guardar el album. Error :{e}")
-            
-            
-
-            return AlbumDTOResponse(
-                id=album.id,
-                title= album.title,
-                release_date = album.release_date,
-                url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}",
-                created_at = album.created_at,
-                updated_at = album.updated_at
-            )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -93,30 +95,47 @@ class AlbumService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    def update_album(self, request: Request, id:int, title: str, artist: int, release_date: date, image: UploadFile) -> AlbumDTOResponse:
+    def update_album(self, request: Request, id: int, title: str, artist: int, release_date: date, image: UploadFile) -> AlbumDTOResponse:
         try:
-            album: Album = Album.get_by_id(id)
+            with db.atomic():
+                # Buscar el álbum por ID
+                try:
+                    album: Album = Album.get_by_id(id)
+                except Album.DoesNotExist:
+                    raise HTTPException(status_code=404, detail='Album no encontrado')
 
-            image_tool = ImageTool(self.path_image)
+                # Actualizar los campos del álbum
+                album.title = title
 
-            album.title = title
-            album.artist = artist
-            album.release_date = release_date
+                # Verificar si el artista existe
+                try:
+                    artist_instance = Artist.get_by_id(artist)
+                    album.artist = artist_instance
+                except Artist.DoesNotExist:
+                    raise HTTPException(status_code=404, detail='Artista no encontrado')
 
-            old_image = album.url_image
-            new_image = None
-            if image != None:
-                new_image = image_tool.save_image(image, (500, 500))
-            if new_image != None:
-                album.url_image = new_image
-                image_tool.delete_image(old_image)
+                album.release_date = release_date
 
-            album.save()
+                # Manejo de la imagen
+                image_tool = ImageTool(self.path_image)
+                old_image = album.url_image
+                new_image = None
+                if image:
+                    new_image = image_tool.save_image(image, (500, 500))
+                    if new_image:
+                        album.url_image = new_image
+                        image_tool.delete_image(old_image)
 
-            album.url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}"
-            return album
-        except Album.DoesNotExist:
-            raise HTTPException(status_code=404, detail='Album no encontrado')
+                # Guardar cambios en el álbum
+                album.save()
+
+                # Construir URL completa de la imagen
+                album.url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}"
+
+                # Devolver el DTO
+                return album
+        except IntegrityError as e:
+            raise HTTPException(status_code=400, detail="Error de integridad en la base de datos")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
     

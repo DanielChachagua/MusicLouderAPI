@@ -48,9 +48,9 @@ class GenreResponse(BaseModel):
 
 class PlayListResponse(BaseModel):
     id: int
-    title: str
+    name: str
     songs: List[SongDTOResponse]
-    created_by: int
+    created_by: UserInfo
     created_at: datetime
     updated_at: datetime
 

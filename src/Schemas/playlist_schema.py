@@ -1,16 +1,17 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List
+from ..Schemas.user_schema import UserInfo
 
 class PlayListRequest(BaseModel):
-    title: str
+    name: str
     songs: List[int]
     created_by: int
 
 class PlayListDTOResponse(BaseModel):
     id: int
-    title: str
-    created_by: int
+    name: str
+    created_by: UserInfo
     created_at: datetime
     updated_at: datetime
 

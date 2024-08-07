@@ -21,7 +21,7 @@ site_build
 venv
 docs.zip
 archive.zip
-Multimedia
+Multimedia/
 
 # vim temporary files
 *~
