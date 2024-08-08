@@ -7,7 +7,7 @@ from ..Schemas.playlist_schema import PlayListDTOResponse, PlayListRequest
 from ..Schemas.response_schema import PlayListResponse
 from ..Services.playlist_service import PlaylistService
 
-playlist_router = APIRouter()
+playlist_router = APIRouter(tags=['PlayList'])
 
 playlist_service = PlaylistService()
 

@@ -8,7 +8,7 @@ from ..Schemas.song_schema import SongPaginatedResponse, SongDTOResponse
 from ..Services.song_service import SongService
 from ..Routes.auth import get_current_user
 
-song_router = APIRouter()
+song_router = APIRouter(tags=['Songs'])
 
 song_service = SongService(path_song='src/Multimedia/Music')
 

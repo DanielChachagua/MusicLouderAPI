@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from decouple import config
 from ..Models.user_model import User
 
-auth_router = APIRouter()
+auth_router = APIRouter(tags=['Auth'])
 
 oauth_scheme = OAuth2PasswordBearer('/auth')
 

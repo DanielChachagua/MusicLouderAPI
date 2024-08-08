@@ -6,7 +6,7 @@ from ..Schemas.response_schema import ArtistResponse
 from ..Schemas.artist_schema import ArtistDTOResponse, ArtistPaginatedResponse
 from ..Services.artist_service import ArtistService
 
-artist_router = APIRouter()
+artist_router = APIRouter(tags=['Artists'])
 
 artist_service = ArtistService(path_image='src/Multimedia/Image/Artist')
 

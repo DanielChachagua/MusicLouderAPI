@@ -10,7 +10,7 @@ from ..Schemas.response_schema import AlbumResponse
 from ..Schemas.album_schema import AlbumPaginatedResponse, AlbumDTOResponse
 from ..Services.album_service import AlbumService
 
-album_router = APIRouter()
+album_router = APIRouter(tags=['Albums'])
 
 album_service = AlbumService(path_image='src/Multimedia/Image/Album')
 

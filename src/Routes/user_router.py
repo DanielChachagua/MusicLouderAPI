@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from ..Schemas.user_schema import UserCreate
 from ..Services.user_service import UserService
 
-user_router = APIRouter()
+user_router = APIRouter(tags=['User'])
 
 user_service = UserService(save_path_image='src/Multimedia/Image/User')
 
