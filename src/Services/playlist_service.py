@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Request
 
-from src.Schemas.user_schema import UserInfo
-
+from ..Schemas.user_schema import UserInfo
+from ..Models.user_model import User
 from ..Schemas.response_schema import PlayListResponse
 from ..Models.playlist_model import Playlist, PlaylistSong
 from ..Schemas.playlist_schema import PlayListDTOResponse, PlayListRequest
@@ -12,18 +12,13 @@ from peewee import IntegrityError
 
 class PlaylistService:
 
-    def create_playlist(self, playlist: PlayListRequest) -> PlayListDTOResponse:
+    def create_playlist(self, playlist: PlayListRequest, user: User) -> PlayListDTOResponse:
         try:
             with db.atomic():
                 try:
-                    user = User.get_by_id(playlist.created_by)
-                except User.DoesNotExist:
-                    raise HTTPException(status_code=404, detail="User no encontrado")
-
-                try:
                     new_playlist = Playlist.create(
                         name=playlist.name,
-                        created_by=user,  # Utilizar el objeto user
+                        created_by=user.id, 
                     )
 
                     for song_id in playlist.songs:
@@ -42,13 +37,8 @@ class PlaylistService:
             raise HTTPException(500, str(e))
         
 
-    def get_playlists(self, id:int) -> PlayListDTOResponse:
+    def get_playlists(self, user: User) -> PlayListDTOResponse:
         try:
-            try:
-                user: User = User.get_by_id(id)
-            except User.DoesNotExist:
-                raise HTTPException(status_code=404, detail="User no encontrado")
-            
             playlists: List[Playlist] = Playlist.select().where(Playlist.created_by == user.id)
 
             return playlists
@@ -56,13 +46,9 @@ class PlaylistService:
             raise HTTPException(500, str(e))
         
     
-    def get_playlist(self, id: int, user_id: int) -> PlayListResponse:
+    def get_playlist(self, id: int, user: User) -> PlayListResponse:
         try:
-            user = User.get_or_none(User.id == user_id)
-            if not user:
-                raise HTTPException(status_code=404, detail="User no encontrado")
-
-            playlist = Playlist.get_or_none(Playlist.id == id)
+            playlist = Playlist.get_or_none(Playlist.id == user.id)
             if not playlist:
                 raise HTTPException(status_code=404, detail="PlayList no encontrado")
 
@@ -76,7 +62,7 @@ class PlaylistService:
                 id=playlist.id,
                 name=playlist.name,
                 songs=song_dto_responses,
-                created_by=UserInfo.model_validate(playlist.created_by),
+                created_by=UserInfo.model_validate(user),
                 created_at=playlist.created_at,
                 updated_at=playlist.updated_at
             )
@@ -89,10 +75,10 @@ class PlaylistService:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    def delete_playlist(self, id: int, user_id: int):
+    def delete_playlist(self, id: int, user: User):
         try:
             playlist = Playlist.get_by_id(id)
-            if playlist.created_by.id != user_id:
+            if playlist.created_by.id != user.id:
                 raise HTTPException(status_code=403, detail="Forbidden")
 
             with db.atomic():
@@ -106,14 +92,9 @@ class PlaylistService:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    def edit_playlist(self, id: int, playlist: PlayListRequest) -> PlayListDTOResponse:
+    def edit_playlist(self, id: int, playlist: PlayListRequest, user: User) -> PlayListDTOResponse:
         try:
             with db.atomic():
-                try:
-                    user = User.get_by_id(playlist.created_by)
-                except User.DoesNotExist:
-                    raise HTTPException(status_code=404, detail="User no encontrado")
-
                 try:
                     existing_playlist = Playlist.get_by_id(id)
                 except Playlist.DoesNotExist:

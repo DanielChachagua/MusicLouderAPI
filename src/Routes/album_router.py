@@ -1,6 +1,9 @@
 from datetime import date
-from fastapi import APIRouter, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import FileResponse
+
+from ..Models.user_model import User
+from ..Routes.auth import get_current_user
 
 from ..Schemas.response_schema import AlbumResponse
 
@@ -27,7 +30,8 @@ async def create_album(
     artist: int = Form(None), 
     release_date: date = Form(...), 
     created_by: int = Form(...), 
-    image: UploadFile = File(...)
+    image: UploadFile = File(...),
+    user: User = Depends(get_current_user)
 ) -> AlbumDTOResponse:
     return album_service.create_album(
         request=request, 
@@ -35,7 +39,8 @@ async def create_album(
         artist= artist,
         release_date= release_date,
         created_by = created_by,
-        image=image
+        image=image,
+        user=user
     )
 
 
@@ -46,20 +51,22 @@ async def update_album(
     title: str = Form(...),
     artist: int = Form(...),
     release_date: date = Form(...),
-    image: UploadFile = File(None)
+    image: UploadFile = File(None),
+    user: User = Depends(get_current_user)
 ) -> AlbumDTOResponse:
     return album_service.update_album(
-        request=request, 
+        request=request,
         id=id,
         title= title,
         artist= artist,
         release_date= release_date,
-        image=image
+        image=image, 
+        user=user
     )
 
 @album_router.delete('/{id}', response_model=dict)
-async def delete_artist(id: int) -> dict:
-    return album_service.delete_album(id)
+async def delete_artist(id: int, user: User = Depends(get_current_user)) -> dict:
+    return album_service.delete_album(id, user)
 
 
 @album_router.get('/image/{file_name}', response_class=FileResponse)

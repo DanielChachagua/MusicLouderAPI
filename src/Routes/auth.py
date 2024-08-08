@@ -3,19 +3,21 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 import jwt
 from datetime import datetime, timedelta, timezone
 from decouple import config
-from ..Schemas.user_schema import UserInfo
 from ..Models.user_model import User
 
 auth_router = APIRouter()
 
-oauth_scheme = OAuth2PasswordBearer('/token')
+oauth_scheme = OAuth2PasswordBearer('/auth')
 
-@auth_router.post('/auth')
+@auth_router.post('/')
 async def auth(data: OAuth2PasswordRequestForm = Depends()):
     user = User.authenticate(data.username, data.password)
     print(user)
     if user:
-        return UserInfo.model_validate(user)
+        return  {
+            'access_token': create_token(user),
+            'token_type': 'Bearer'
+        }
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, 'Credenciales incorrectas', headers={ 'WWW-Authenticate' : 'Bearer'})
 
 def create_token(user, hours=2):
@@ -33,13 +35,14 @@ def decode_token(token):
     except Exception as e:
         return None
 
-def get_current_user(token: str = Depends(oauth_scheme)):
+def get_current_user(token: str = Depends(oauth_scheme)) -> User:
+    print(token)
     data = decode_token(token)
     if data:
         return User.get_by_id(data['user_id'])
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Access Token no valido', headers={ 'WWW-Authenticate' : 'Bearer'})
 
-@auth_router.post('/token')
-async def login():
-    return 'login'
+# @auth_router.post('/token')
+# async def login():
+#     return 'login'

@@ -34,7 +34,7 @@ class UserService:
         user.save()
         return user.username
     
-    def check_password(self, password: str, hashed: str) -> bool:
-        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+    
     
     

@@ -79,7 +79,6 @@ class ArtistService:
 
             image_tool = ImageTool(self.path_image)
 
-            # Guardar la imagen usando el archivo UploadFile
             file_name = image_tool.save_image(image, (500, 500))
             
             try:
@@ -156,18 +155,14 @@ class ArtistService:
             "image/png": ".png",
         }
         try:
-            # Construir la ruta completa del archivo
             file_path = os.path.join(self.path_image, file_name)
 
-            # Verificar si el archivo existe
             if not os.path.exists(file_path):
                 raise HTTPException(status_code=404, detail="File not found")
 
-            # Obtener la extensión del archivo y el tipo MIME
             file_extension = os.path.splitext(file_name)[1].lower()
             mime_type = mime_to_extension.get(file_extension, "application/octet-stream")
 
-            # Devolver el archivo
             return FileResponse(file_path, media_type=mime_type, filename=file_name)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al servir el archivo: {str(e)}")

@@ -13,7 +13,6 @@ from ..Models.playlist_model import Playlist
 from ..Models.song_model import Song
 from ..Models.user_model import User
 
-# Conectar al servidor MySQL para crear la base de datos si no existe
 def create_database_if_not_exists():
     connection = MySQLdb.connect(
         host=config('DB_HOST'),
@@ -31,7 +30,6 @@ def create_database_if_not_exists():
         cursor.close()
         connection.close()
 
-# # Inicializar la base de datos de Peewee
 # db = MySQLDatabase(
 #     config('DB_NAME'),
 #     host=config('DB_HOST'),
@@ -40,7 +38,6 @@ def create_database_if_not_exists():
 #     port=int(config('DB_PORT'))
 # )
 
-# Definición de la señal para actualizar `updated_at`
 @pre_save()
 def on_save_handler(sender, instance, created):
     instance.updated_at = datetime.now(lambda: datetime.now(timezone.utc))

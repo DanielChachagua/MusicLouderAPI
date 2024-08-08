@@ -1,5 +1,5 @@
 from datetime import date
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Request
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Request, status
 
 from ..Schemas.album_schema import AlbumPaginatedResponse, AlbumDTOResponse
 from ..Schemas.response_schema import AlbumResponse
@@ -9,14 +9,14 @@ from ..Database.db import *
 from ..Database.configuration import db
 import math
 import os
-from typing import List
+from typing import List, Any
 from starlette.responses import FileResponse
 
 class AlbumService:
     def __init__(self, path_image: str):
         self.path_image = path_image
 
-    def create_album(self, request: Request, title: str, artist: int, release_date: date, created_by: int, image: UploadFile) -> AlbumDTOResponse:
+    def create_album(self, request: Request, title: str, artist: int, release_date: date, image: UploadFile, user: User) -> AlbumDTOResponse:
         try:
             with db.atomic():
                 image_tool = ImageTool(self.path_image)
@@ -35,7 +35,7 @@ class AlbumService:
                         artist = exist_artist,
                         release_date = release_date,
                         url_image = file_name,
-                        created_by = created_by
+                        created_by = user.id
                     )
                 except Exception as e:
                     image_tool.delete_image(file_name)
@@ -95,19 +95,18 @@ class AlbumService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    def update_album(self, request: Request, id: int, title: str, artist: int, release_date: date, image: UploadFile) -> AlbumDTOResponse:
+    def update_album(self, request: Request, id: int, title: str, artist: int, release_date: date, image: UploadFile, user: User) -> AlbumDTOResponse:
         try:
             with db.atomic():
-                # Buscar el álbum por ID
                 try:
                     album: Album = Album.get_by_id(id)
                 except Album.DoesNotExist:
                     raise HTTPException(status_code=404, detail='Album no encontrado')
 
-                # Actualizar los campos del álbum
+                if album.created_by.id != user.id:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='No posee el permiso para editar el album', headers={ 'WWW-Authenticate' : 'Bearer'})
                 album.title = title
 
-                # Verificar si el artista existe
                 try:
                     artist_instance = Artist.get_by_id(artist)
                     album.artist = artist_instance
@@ -116,7 +115,6 @@ class AlbumService:
 
                 album.release_date = release_date
 
-                # Manejo de la imagen
                 image_tool = ImageTool(self.path_image)
                 old_image = album.url_image
                 new_image = None
@@ -126,13 +124,10 @@ class AlbumService:
                         album.url_image = new_image
                         image_tool.delete_image(old_image)
 
-                # Guardar cambios en el álbum
                 album.save()
 
-                # Construir URL completa de la imagen
                 album.url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}"
 
-                # Devolver el DTO
                 return album
         except IntegrityError as e:
             raise HTTPException(status_code=400, detail="Error de integridad en la base de datos")
@@ -140,12 +135,14 @@ class AlbumService:
             raise HTTPException(status_code=500, detail=str(e))
     
 
-    def delete_album(self, id: int) -> dict:
+    def delete_album(self, id: int, user: User) -> Any:
         try:
             album: Album = Album.get_by_id(id)
+            if album.created_by.id != user.id:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='No posee el permiso para editar el album', headers={ 'WWW-Authenticate' : 'Bearer'})
             album.delete_instance()
             ImageTool(self.path_image).delete_image(album.url_image)
-            return {"detail": "Artista eliminado exitosamente"}
+            return status.HTTP_200_OK
         except Album.DoesNotExist:
             raise HTTPException(status_code=404, detail="Album no encontrado")
         except Exception as e:
@@ -158,18 +155,14 @@ class AlbumService:
             "image/png": ".png",
         }
         try:
-            # Construir la ruta completa del archivo
             file_path = os.path.join(self.path_image, file_name)
 
-            # Verificar si el archivo existe
             if not os.path.exists(file_path):
                 raise HTTPException(status_code=404, detail="File not found")
 
-            # Obtener la extensión del archivo y el tipo MIME
             file_extension = os.path.splitext(file_name)[1].lower()
             mime_type = mime_to_extension.get(file_extension, "application/octet-stream")
 
-            # Devolver el archivo
             return FileResponse(file_path, media_type=mime_type, filename=file_name)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al servir el archivo: {str(e)}")

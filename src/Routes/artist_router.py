@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Query, UploadFile, File, Request, Form, Body
+from fastapi import APIRouter, Depends, Query, UploadFile, File, Request, Form, Body
 from fastapi.responses import FileResponse
-
+from ..Models.user_model import User
+from ..Routes.auth import get_current_user
 from ..Schemas.response_schema import ArtistResponse
 from ..Schemas.artist_schema import ArtistDTOResponse, ArtistPaginatedResponse
 from ..Services.artist_service import ArtistService
-from typing import Optional
 
 artist_router = APIRouter()
 
@@ -26,14 +26,16 @@ async def create_artist(
     name: str = Form(...),
     bio: str = Form(...),
     created_by: int = Form(...),
-    image: UploadFile = File(...)
+    image: UploadFile = File(...),
+    user: User = Depends(get_current_user)
 ) -> ArtistDTOResponse:
     return artist_service.create_artist(
         request=request, 
         name = name,
         bio = bio,
         created_by = created_by,
-        image=image
+        image=image,
+        user=user
     )
 
 
@@ -44,7 +46,8 @@ async def update_artist(
     name: str = Form(...),
     bio: str = Form(...),
     created_by: int = Form(...),
-    image: UploadFile = File(None)
+    image: UploadFile = File(None),
+    user: User = Depends(get_current_user)
 ) -> ArtistDTOResponse:
     return artist_service.update_artist(
         id=id,
@@ -52,12 +55,13 @@ async def update_artist(
         name = name,
         bio = bio,
         created_by = created_by,
-        image=image
+        image=image,
+        user=user
     )
 
 @artist_router.delete('/{id}', response_model=dict)
-async def delete_artist(id: int) -> dict:
-    return artist_service.delete_artist(id)
+async def delete_artist(id: int,user: User = Depends(get_current_user)) -> dict:
+    return artist_service.delete_artist(id, user)
 
 
 @artist_router.get('/image/{file_name}', response_class=FileResponse)
