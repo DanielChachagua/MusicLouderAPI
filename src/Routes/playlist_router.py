@@ -26,7 +26,7 @@ async def create_playlist(playlist: PlayListRequest,user: User = Depends(get_cur
 
 
 @playlist_router.put('/{id}', response_model=PlayListDTOResponse)
-async def create_playlist(id: int, playlist: PlayListRequest, user: User = Depends(get_current_user)) -> PlayListDTOResponse:
+async def edit_playlist(id: int, playlist: PlayListRequest, user: User = Depends(get_current_user)) -> PlayListDTOResponse:
     return playlist_service.edit_playlist(id=id, playlist=playlist, user=user)
 
 

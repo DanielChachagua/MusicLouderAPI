@@ -13,6 +13,9 @@ oauth_scheme = OAuth2PasswordBearer('/auth')
 async def auth(data: OAuth2PasswordRequestForm = Depends()):
     user = User.authenticate(data.username, data.password)
     print(user)
+    if user == False:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, 'Usuario no activo, revise su mail y valide su cuenta', headers={ 'WWW-Authenticate' : 'Bearer'})
+    
     if user:
         return  {
             'access_token': create_token(user),

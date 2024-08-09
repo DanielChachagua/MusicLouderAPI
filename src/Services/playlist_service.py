@@ -48,7 +48,7 @@ class PlaylistService:
     
     def get_playlist(self, id: int, user: User) -> PlayListResponse:
         try:
-            playlist = Playlist.get_or_none(Playlist.id == user.id)
+            playlist = Playlist.get_or_none(Playlist.id == id)
             if not playlist:
                 raise HTTPException(status_code=404, detail="PlayList no encontrado")
 
@@ -99,6 +99,9 @@ class PlaylistService:
                     existing_playlist = Playlist.get_by_id(id)
                 except Playlist.DoesNotExist:
                     raise HTTPException(status_code=404, detail="PlayList no encontrado")
+
+                if existing_playlist.created_by.id != user.id:
+                    raise HTTPException(status_code=403, detail="Forbidden")
 
                 existing_playlist.name = playlist.name
                 existing_playlist.updated_at = datetime.now(timezone.utc)

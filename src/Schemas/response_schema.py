@@ -30,6 +30,7 @@ class ArtistResponse(BaseModel):
     bio: str
     url_image: str
     albums: Optional[List[AlbumDTOResponse]]
+    songs: Optional[List[SongDTOResponse]]
     created_by: UserInfo
     created_at: datetime
     updated_at: datetime

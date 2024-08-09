@@ -29,7 +29,6 @@ async def create_album(
     title: str = Form(...), 
     artist: int = Form(None), 
     release_date: date = Form(...), 
-    created_by: int = Form(...), 
     image: UploadFile = File(...),
     user: User = Depends(get_current_user)
 ) -> AlbumDTOResponse:
@@ -38,7 +37,6 @@ async def create_album(
         title= title,
         artist= artist,
         release_date= release_date,
-        created_by = created_by,
         image=image,
         user=user
     )

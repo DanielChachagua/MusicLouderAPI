@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from ..Schemas.user_schema import UserCreate
 from ..Services.user_service import UserService
 
@@ -11,8 +11,8 @@ async def create_user(user: UserCreate):
     return user_service.create_user(user)
 
 
-@user_router.put('/active/{id}')
-async def active_user(id: int):
-    return user_service.active_user(id)
+@user_router.get('/active/{token}')
+async def active_user(token: str, email: str = Query(...)):
+    return user_service.active_user(token, email)
 
 

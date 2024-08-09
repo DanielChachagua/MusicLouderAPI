@@ -2,7 +2,21 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import List,Optional
 
-from ..Schemas.genre_schema import GenreDTOResponse
+class AlbumDTO(BaseModel):
+    id: int
+    title: str
+    url_image: str
+
+    class Config:
+        from_attributes = True
+
+class ArtistDTO(BaseModel):
+    id: int
+    name: str
+    url_image: str
+
+    class Config:
+        from_attributes = True
 
 class SongRequest(BaseModel):
     title: str
@@ -17,6 +31,8 @@ class SongDTOResponse(BaseModel):
     title: str
     duration: int
     url_song: str
+    album: Optional[AlbumDTO] = None
+    artist: Optional[ArtistDTO] = None
     created_at: datetime
     updated_at: datetime
 

@@ -12,7 +12,7 @@ song_router = APIRouter(tags=['Songs'])
 
 song_service = SongService(path_song='src/Multimedia/Music')
 
-@song_router.get('/', response_model=SongPaginatedResponse)
+@song_router.get('/', response_model=SongPaginatedResponse, summary="Get All Songs", description="Retrieve a list of songs.")
 async def get_songs(request: Request, page: int = Query(1, ge=1), size: int = Query(10, ge=1, le=100)) -> SongPaginatedResponse:
     return song_service.get_songs(request, page, size)
 
@@ -25,6 +25,8 @@ async def create_song(request: Request,
     title: str = Form(...),
     song: UploadFile = File(...),
     genres: List[str] = Form(...),
+    album: int = Form(None),
+    artist: int = Form(None),
     user: User = Depends(get_current_user)
 ):
     content = await song.read()
@@ -34,7 +36,9 @@ async def create_song(request: Request,
         title=title,
         content=content,
         content_type=song.content_type,
-        genres=genres
+        genres=genres,
+        album=album,
+        artist=artist
     )
 
 @song_router.get("/music/{file_name}", response_class=FileResponse)
@@ -60,16 +64,24 @@ async def edit_song(
     user: User = Depends(get_current_user), 
     title: str = None, 
     song: UploadFile = File(None), 
-    genres: List[str] = Form(None)
+    genres: List[str] = Form(None),
+    album: int = Form(None),
+    artist: int = Form(None)
 ):  
-    if song is not None:
+    content = None
+    content_type = None
+    if song:
         content = await song.read()
+        content_type = song.content_type
     return song_service.edit_song(
         request=request, 
         song_id=song_id, 
         user=user, 
         title=title, 
         content=content,
-        content_type=song.content_type,
-        genres=genres
+        content_type=content_type,
+        genres=genres,
+        album=album,
+        artist=artist
     )
+   

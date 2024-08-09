@@ -25,7 +25,6 @@ async def create_artist(
     request: Request,
     name: str = Form(...),
     bio: str = Form(...),
-    created_by: int = Form(...),
     image: UploadFile = File(...),
     user: User = Depends(get_current_user)
 ) -> ArtistDTOResponse:
@@ -33,7 +32,6 @@ async def create_artist(
         request=request, 
         name = name,
         bio = bio,
-        created_by = created_by,
         image=image,
         user=user
     )
@@ -45,7 +43,6 @@ async def update_artist(
     request: Request,
     name: str = Form(...),
     bio: str = Form(...),
-    created_by: int = Form(...),
     image: UploadFile = File(None),
     user: User = Depends(get_current_user)
 ) -> ArtistDTOResponse:
@@ -54,7 +51,6 @@ async def update_artist(
         request=request, 
         name = name,
         bio = bio,
-        created_by = created_by,
         image=image,
         user=user
     )

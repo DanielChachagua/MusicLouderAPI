@@ -2,6 +2,14 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from typing import List, Optional
 
+class ArtistDTO(BaseModel):
+    id: int
+    name: str
+    url_image: str
+
+    class Config:
+        from_attributes = True
+
 class AlbumRequest(BaseModel):
     title: str
     artist: Optional[int] = None
@@ -13,6 +21,7 @@ class AlbumDTOResponse(BaseModel):
     title: str
     release_date: date
     url_image: str
+    artist: Optional[ArtistDTO] = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,14 +1,17 @@
-from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, Response
+from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, Response, status
 from typing import List, Optional
 from datetime import datetime, timezone
 
 from ..Schemas.response_schema import ArtistResponse
 from ..Models.album_model import Album
+from ..Models.song_model import Song
+from ..Models.artist_model import Artist
+from ..Models.user_model import User
 from ..Services.Tools.image_tool import ImageTool
-from ..Database.db import Artist, User
 from ..Schemas.artist_schema import ArtistDTOResponse, ArtistPaginatedResponse
 from ..Schemas.album_schema import AlbumDTOResponse
 from ..Schemas.user_schema import UserInfo
+from ..Schemas.song_schema import SongDTOResponse
 from starlette.responses import FileResponse
 import math
 import os
@@ -55,12 +58,14 @@ class ArtistService:
         try:
             artist = Artist.get_by_id(id)
             albums = Album.select().where(Album.artist == artist.id)
+            songs = Song.select().where(Song.artist == artist.id)
             
             return ArtistResponse(
                 id=artist.id,
                 name=artist.name,
                 bio=artist.bio or '',
                 url_image=f"{request.url.scheme}://{request.url.netloc}/artist/image/{artist.url_image}",
+                songs= [SongDTOResponse.model_validate(song) for song in songs],
                 albums=[AlbumDTOResponse.model_validate(album) for album in albums],
                 created_by=UserInfo.model_validate(User.get_by_id(artist.created_by)),
                 created_at=artist.created_at,
@@ -72,11 +77,11 @@ class ArtistService:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    def create_artist(self, request: Request, name: str, bio: str, created_by: int, image: UploadFile) -> ArtistDTOResponse:
+    def create_artist(self, request: Request, name: str, bio: str, image: UploadFile, user: User) -> ArtistDTOResponse:
         try:
             if Artist.select().where(Artist.name == name):
                 raise HTTPException(400, 'El artista ya existe')
-
+            
             image_tool = ImageTool(self.path_image)
 
             file_name = image_tool.save_image(image, (500, 500))
@@ -86,7 +91,7 @@ class ArtistService:
                     name=name,
                     bio=bio,
                     url_image=file_name,
-                    created_by=created_by
+                    created_by=user.id
                 )
             except Exception as e:
                 image_tool.delete_image(file_name)
@@ -104,11 +109,13 @@ class ArtistService:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    def update_artist(self, id: int, request: Request, name: str, bio: str, created_by: int, image: UploadFile) -> ArtistDTOResponse:
+    def update_artist(self, id: int, request: Request, name: str, bio: str, image: UploadFile, user: User) -> ArtistDTOResponse:
         try:
             image_tool = ImageTool(self.path_image)
 
             artist: Artist = Artist.get_by_id(id)
+            if artist.created_by.id != user.id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='No tiene permisos para editar el artista', headers={ 'WWW-Authenticate' : 'Bearer'})
             artist.name = name
             artist.bio = bio
             artist.updated_at = datetime.now(timezone.utc)

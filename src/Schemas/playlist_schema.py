@@ -6,7 +6,6 @@ from ..Schemas.user_schema import UserInfo
 class PlayListRequest(BaseModel):
     name: str
     songs: List[int]
-    created_by: int
 
 class PlayListDTOResponse(BaseModel):
     id: int

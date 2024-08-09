@@ -1,12 +1,12 @@
 import os
 import math
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException, Request, status
 from starlette.responses import FileResponse
 from ..Schemas.artist_schema import ArtistDTOResponse
 from ..Schemas.response_schema import AlbumDTOResponse, GenreDTOResponse, SongResponse
 from .Tools.song_tool import SongTool
-from ..Schemas.song_schema import SongDTOResponse, SongPaginatedResponse
+from ..Schemas.song_schema import SongDTOResponse, SongPaginatedResponse, AlbumDTO, ArtistDTO
 from ..Schemas.user_schema import UserInfo
 from ..Models.song_model import Song, SongGenre
 from ..Models.album_model import Album
@@ -28,11 +28,23 @@ class SongService:
 
             songs = []
             for song in song_query:
+                album = None
+                artist = None
+                if song.album is not None:
+                    album = Album.get_by_id(song.album)
+                    album = AlbumDTO.model_validate(album)
+
+                if song.artist is not None:
+                    artist = Artist.get_by_id(song.artist)
+                    artist = ArtistDTO.model_validate(artist)
+
                 song_resp: SongDTOResponse = SongDTOResponse(
                     id=song.id,
                     title=song.title,
                     duration=song.duration,
                     url_song=f"{request.url.scheme}://{request.url.netloc}/songs/music/{song.url_song}",
+                    album=album,
+                    artist=artist,
                     created_at=song.created_at,
                     updated_at=song.updated_at
                 )
@@ -88,14 +100,26 @@ class SongService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    def create_song(self, request: Request, title: str, content: bytes, content_type: str, genres: List[str], user: User) -> dict:
+    def create_song(self, request: Request, title: str, genres: List[str], content: bytes, content_type: str,  user: User, album: int = None, artist: int = None) -> dict:
         try:
             song_tool = SongTool(self.path_song)
             filename, duration = song_tool.save_song(content_type, content)
 
+            try:  
+                album = Album.get_by_id(album)
+            except:    
+                album = None
+
+            try:  
+                artist = Artist.get_by_id(artist)
+            except:    
+                artist = None
+
             new_song = Song(
                 title=title,
                 duration=duration,
+                album=album,
+                artist=artist,
                 url_song=filename,
                 created_by=user.id
             )
@@ -105,9 +129,9 @@ class SongService:
                 for genre_name in genres[0].split(','):
                     genre, _ = Genre.get_or_create(name=genre_name.lower())
                     SongGenre.create(song=new_song, genre=genre)
-            except:
+            except Exception as e:
                 song_tool.delete_song(filename)
-                raise HTTPException(status_code=500, detail="Error al guardar el audio")
+                raise HTTPException(status_code=500, detail=f"Error al guardar el audio: {e}")
 
             return {
                 "message": "Cancion creada exitosamente",
@@ -169,11 +193,22 @@ class SongService:
 
             songs = []
             for song in song_query:
+                album = None
+                artist = None
+                if song.album is not None:
+                    album = Album.get_by_id(song.album)
+                    album = AlbumDTO.model_validate(album)
+
+                if song.artist is not None:
+                    artist = Artist.get_by_id(song.artist)
+                    artist = ArtistDTO.model_validate(artist)
                 song_resp: SongDTOResponse = SongDTOResponse(
                     id=song.id,
                     title=song.title,
                     duration=song.duration,
                     url_song=f"{request.url.scheme}://{request.url.netloc}/songs/music/{song.url_song}",
+                    album=album,
+                    artist=artist,
                     created_at=song.created_at,
                     updated_at=song.updated_at
                 )
@@ -197,11 +232,23 @@ class SongService:
 
             songs = []
             for song in song_query:
+                album = None
+                artist = None
+                if song.album is not None:
+                    album = Album.get_by_id(song.album)
+                    album = AlbumDTO.model_validate(album)
+
+                if song.artist is not None:
+                    artist = Artist.get_by_id(song.artist)
+                    artist = ArtistDTO.model_validate(artist)
+
                 song_resp: SongDTOResponse = SongDTOResponse(
                     id=song.id,
                     title=song.title,
                     duration=song.duration,
                     url_song=f"{request.url.scheme}://{request.url.netloc}/songs/music/{song.url_song}",
+                    album=album,
+                    artist=artist,
                     created_at=song.created_at,
                     updated_at=song.updated_at
                 )
@@ -231,42 +278,64 @@ class SongService:
             raise HTTPException(status_code=500, detail=str(e))
         
 
-    def edit_song(self, request: Request, song_id: int, user: User, title: str = None, content: bytes = None, content_type: str = None, genres: List[str] = None) -> SongDTOResponse:
+    def edit_song(self, request: Request, song_id: int, user: User, title: Optional[str] = None, album: Optional[int] = None, artist: Optional[int] = None, content: Optional[bytes] = None, content_type: Optional[str] = None, genres: Optional[List[str]] = None) -> SongDTOResponse:
         try:
-            song: Song = Song.get_by_id(song_id)
+            song = Song.get_by_id(song_id)
+
             if song.created_by.id != user.id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='No posee el permiso para editar esta canción', headers={'WWW-Authenticate': 'Bearer'})
 
             if title:
                 song.title = title
 
+            if album:
+                try:
+                    album = Album.get_by_id(album)
+                except Album.DoesNotExist:
+                    album = None
+
+            if artist:
+                try:
+                    artist = Artist.get_by_id(artist)
+                except Artist.DoesNotExist:
+                    artist = None
+
             song_tool = SongTool(self.path_song)
+
             if content and content_type:
                 song_tool.delete_song(song.url_song)
-
                 filename, duration = song_tool.save_song(content_type, content)
                 song.url_song = filename
                 song.duration = duration
 
+            song.album = album
+            song.artist = artist
             song.updated_at = datetime.now(timezone.utc)
             song.save()
 
-            if genres is not None:
+            if genres:
                 SongGenre.delete().where(SongGenre.song == song).execute()
-
                 for genre_name in genres[0].split(','):
                     genre, _ = Genre.get_or_create(name=genre_name.lower())
                     SongGenre.create(song=song, genre=genre)
 
+            # Verifica que el objeto retornado cumpla con SongDTOResponse
             return SongDTOResponse(
                 id=song.id,
                 title=song.title,
                 duration=song.duration,
                 url_song=f"{request.url.scheme}://{request.url.netloc}/songs/music/{song.url_song}",
+                album=AlbumDTO.model_validate(album),
+                artist=ArtistDTO.model_validate(artist),
                 created_at=song.created_at,
                 updated_at=song.updated_at
             )
+
         except Song.DoesNotExist:
             raise HTTPException(status_code=404, detail="Canción no encontrada")
+        except Album.DoesNotExist:
+            raise HTTPException(status_code=404, detail="Álbum no encontrado")
+        except Artist.DoesNotExist:
+            raise HTTPException(status_code=404, detail="Artista no encontrado")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

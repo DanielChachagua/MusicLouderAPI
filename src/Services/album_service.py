@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Req
 
 from ..Schemas.album_schema import AlbumPaginatedResponse, AlbumDTOResponse
 from ..Schemas.response_schema import AlbumResponse
+from ..Schemas.song_schema import ArtistDTO
 from .Tools.image_tool import ImageTool
 from ..Schemas.song_schema import *
 from ..Database.db import *
@@ -27,12 +28,14 @@ class AlbumService:
 
                 exist_artist = None
                 if artist_get:
-                    exist_artist = artist
-
+                    print('hola')
+                    exist_artist = ArtistDTO.model_validate(artist_get)
+                    print('chau')
+                    exist_artist.url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{exist_artist.url_image}"
                 try:
                     album: Album = Album.create(
                         title = title,
-                        artist = exist_artist,
+                        artist = exist_artist.id,
                         release_date = release_date,
                         url_image = file_name,
                         created_by = user.id
@@ -47,7 +50,8 @@ class AlbumService:
                     id=album.id,
                     title= album.title,
                     release_date = album.release_date,
-                    url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}",
+                    url_image = f"{request.url.scheme}://{request.url.netloc}/album/image/{album.url_image}",
+                    artist= album.artist,
                     created_at = album.created_at,
                     updated_at = album.updated_at
                 )
@@ -61,17 +65,21 @@ class AlbumService:
             total_count = Album.select().count()
             albums_query = Album.select().limit(limit).offset(offset)
 
-            albums: List[AlbumDTOResponse] = [
-                AlbumDTOResponse(
+            albums: List[AlbumDTOResponse] = []
+            for album in albums_query:
+                try:  
+                    artist = Artist.get_by_id(album.artist)
+                except:    
+                    artist = None
+                albums.append(AlbumDTOResponse(
                     id=album.id,
                     title=album.title,
                     release_date=album.release_date,
-                    created_at = album.created_at,
                     url_image=f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}",
+                    artist=ArtistDTO.model_validate(artist),
+                    created_at = album.created_at,
                     updated_at = album.updated_at
-                ) 
-                for album in albums_query
-            ]
+                )) 
 
             total_pages = math.ceil(total_count / size)
 
@@ -109,9 +117,9 @@ class AlbumService:
 
                 try:
                     artist_instance = Artist.get_by_id(artist)
-                    album.artist = artist_instance
+                    album.artist = artist_instance.id
                 except Artist.DoesNotExist:
-                    raise HTTPException(status_code=404, detail='Artista no encontrado')
+                    album.artist = None
 
                 album.release_date = release_date
 
@@ -125,10 +133,16 @@ class AlbumService:
                         image_tool.delete_image(old_image)
 
                 album.save()
-
                 album.url_image = f"{request.url.scheme}://{request.url.netloc}/artist/image/{album.url_image}"
-
-                return album
+                return AlbumDTOResponse(
+                    id=album.id,
+                    title=album.title,
+                    release_date=album.release_date,
+                    url_image=album.url_image,
+                    artist=ArtistDTO.model_validate(artist_instance) if artist_instance else None,
+                    created_at=album.created_at,
+                    updated_at=album.updated_at
+                )
         except IntegrityError as e:
             raise HTTPException(status_code=400, detail="Error de integridad en la base de datos")
         except Exception as e:
